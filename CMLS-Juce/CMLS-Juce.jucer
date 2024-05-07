@@ -1,16 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<JUCERPROJECT id="vQsyhx" name="CMLS-Juce" projectType="audioplug" useAppConfig="0"
+<JUCERPROJECT id="Zo0IET" name="CMLS-Juce" projectType="audioplug" useAppConfig="0"
               addUsingNamespaceToJuceHeader="0" displaySplashScreen="1" jucerFormatVersion="1">
-  <MAINGROUP id="T4Vzze" name="CMLS-Juce">
-    <GROUP id="{37618FB1-9269-E11E-BD15-ADD46728C62E}" name="Source">
-      <FILE id="yG313i" name="PluginProcessor.cpp" compile="1" resource="0"
+  <MAINGROUP id="qq5QIM" name="CMLS-Juce">
+    <GROUP id="{3ECBD0B0-7F08-CB8C-902A-D80B2A75AF3B}" name="Source">
+      <FILE id="QLtymP" name="PluginProcessor.cpp" compile="1" resource="0"
             file="Source/PluginProcessor.cpp"/>
-      <FILE id="S8ecJV" name="PluginProcessor.h" compile="0" resource="0"
+      <FILE id="DItqCD" name="PluginProcessor.h" compile="0" resource="0"
             file="Source/PluginProcessor.h"/>
-      <FILE id="rp3iH1" name="PluginEditor.cpp" compile="1" resource="0"
+      <FILE id="EQlVWk" name="PluginEditor.cpp" compile="1" resource="0"
             file="Source/PluginEditor.cpp"/>
-      <FILE id="MXnu8c" name="PluginEditor.h" compile="0" resource="0" file="Source/PluginEditor.h"/>
+      <FILE id="zY03ys" name="PluginEditor.h" compile="0" resource="0" file="Source/PluginEditor.h"/>
     </GROUP>
   </MAINGROUP>
   <MODULES>
@@ -23,11 +23,11 @@
     <MODULE id="juce_audio_utils" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
     <MODULE id="juce_core" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
     <MODULE id="juce_data_structures" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_dsp" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
     <MODULE id="juce_events" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
     <MODULE id="juce_graphics" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
     <MODULE id="juce_gui_basics" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
     <MODULE id="juce_gui_extra" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
-    <MODULE id="juce_osc" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
   </MODULES>
   <JUCEOPTIONS JUCE_STRICT_REFCOUNTEDPOINTER="1" JUCE_VST3_CAN_REPLACE_VST2="0"/>
   <EXPORTFORMATS>
@@ -45,11 +45,11 @@
         <MODULEPATH id="juce_audio_utils" path="../../../../../../../../../usr/share/juce/modules"/>
         <MODULEPATH id="juce_core" path="../../../../../../../../../usr/share/juce/modules"/>
         <MODULEPATH id="juce_data_structures" path="../../../../../../../../../usr/share/juce/modules"/>
+        <MODULEPATH id="juce_dsp" path="../../../../../../../../../usr/share/juce/modules"/>
         <MODULEPATH id="juce_events" path="../../../../../../../../../usr/share/juce/modules"/>
         <MODULEPATH id="juce_graphics" path="../../../../../../../../../usr/share/juce/modules"/>
         <MODULEPATH id="juce_gui_basics" path="../../../../../../../../../usr/share/juce/modules"/>
         <MODULEPATH id="juce_gui_extra" path="../../../../../../../../../usr/share/juce/modules"/>
-        <MODULEPATH id="juce_osc" path="../../../../../../../../../usr/share/juce/modules"/>
       </MODULEPATHS>
     </LINUX_MAKE>
     <VS2022 targetFolder="Builds/VisualStudio2022">
@@ -66,11 +66,11 @@
         <MODULEPATH id="juce_audio_utils" path="../../../../../../../../../usr/share/juce/modules"/>
         <MODULEPATH id="juce_core" path="../../../../../../../../../usr/share/juce/modules"/>
         <MODULEPATH id="juce_data_structures" path="../../../../../../../../../usr/share/juce/modules"/>
+        <MODULEPATH id="juce_dsp" path="../../../../../../../../../usr/share/juce/modules"/>
         <MODULEPATH id="juce_events" path="../../../../../../../../../usr/share/juce/modules"/>
         <MODULEPATH id="juce_graphics" path="../../../../../../../../../usr/share/juce/modules"/>
         <MODULEPATH id="juce_gui_basics" path="../../../../../../../../../usr/share/juce/modules"/>
         <MODULEPATH id="juce_gui_extra" path="../../../../../../../../../usr/share/juce/modules"/>
-        <MODULEPATH id="juce_osc" path="../../../../../../../../../usr/share/juce/modules"/>
       </MODULEPATHS>
     </VS2022>
     <XCODE_MAC targetFolder="Builds/MacOSX">
@@ -87,11 +87,11 @@
         <MODULEPATH id="juce_audio_utils" path="../../../../../../../../../usr/share/juce/modules"/>
         <MODULEPATH id="juce_core" path="../../../../../../../../../usr/share/juce/modules"/>
         <MODULEPATH id="juce_data_structures" path="../../../../../../../../../usr/share/juce/modules"/>
+        <MODULEPATH id="juce_dsp" path="../../../../../../../../../usr/share/juce/modules"/>
         <MODULEPATH id="juce_events" path="../../../../../../../../../usr/share/juce/modules"/>
         <MODULEPATH id="juce_graphics" path="../../../../../../../../../usr/share/juce/modules"/>
         <MODULEPATH id="juce_gui_basics" path="../../../../../../../../../usr/share/juce/modules"/>
         <MODULEPATH id="juce_gui_extra" path="../../../../../../../../../usr/share/juce/modules"/>
-        <MODULEPATH id="juce_osc" path="../../../../../../../../../usr/share/juce/modules"/>
       </MODULEPATHS>
     </XCODE_MAC>
   </EXPORTFORMATS>
