@@ -1,3 +1,7 @@
 pat
 CMLS-Juce/Source/compile_flags.txt
 .vscode
+MyExamples/PluginEditor.cpp
+MyExamples/PluginProcessor.cpp
+MyExamples/PluginEditor.h
+MyExamples/PluginProcessor.h

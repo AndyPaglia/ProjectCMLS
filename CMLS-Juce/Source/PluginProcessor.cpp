@@ -154,7 +154,6 @@ void CMLSJuceAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juc
         buffer.clear (i, 0, buffer.getNumSamples());
 
     float in_magnitude = buffer.getMagnitude(0,buffer.getNumSamples());
-    buffer.applyGain(1/in_magnitude);
 
     juce::AudioBuffer<float> copy1;
     copy1.makeCopyOf<float>(buffer,1); 
@@ -166,6 +165,9 @@ void CMLSJuceAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juc
     juce::dsp::AudioBlock<float> block1(copy1);
     juce::dsp::AudioBlock<float> block2(copy2);
     juce::dsp::AudioBlock<float> block3(copy3);
+    
+    juce::dsp::AudioBlock<float> out(buffer);
+    juce::dsp::AudioBlock<float> app(buffer);
     
     float F1_freq = *tree_state.getRawParameterValue("F1_Freq"); 
     float F1_gain = *tree_state.getRawParameterValue("F1_Gain");
@@ -183,6 +185,10 @@ void CMLSJuceAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juc
     Formant_2.state = *juce::dsp::IIR::Coefficients<float>::makeBandPass(Fs,F2_freq,F2_q);
     Formant_3.state = *juce::dsp::IIR::Coefficients<float>::makeBandPass(Fs,F3_freq,F3_q);
 
+    block1 *= 1/in_magnitude;
+    block2 *= 1/in_magnitude;
+    block3 *= 1/in_magnitude;
+
     auto context1 =juce::dsp::ProcessContextReplacing<float>(block1);
     auto context2 =juce::dsp::ProcessContextReplacing<float>(block2);
     auto context3 =juce::dsp::ProcessContextReplacing<float>(block3);
@@ -190,18 +196,15 @@ void CMLSJuceAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juc
     Formant_1.process(context1);
     Formant_2.process(context2);
     Formant_3.process(context3);
-
     
-    for (int i = 0; i < buffer.getNumChannels(); i++) {
-        for (int j = 0; j < buffer.getNumSamples(); j++) {
-            float newval = context1.getOutputBlock().getSample(i,j)*F1_gain + context2.getOutputBlock().getSample(i,j)*F2_gain + context3.getOutputBlock().getSample(i,j)*F3_gain;
-            buffer.setSample(i, j, newval);
-        }
-    }
+    context1.getOutputBlock().multiplyBy(F1_gain);
+    context2.getOutputBlock().multiplyBy(F2_gain);
+    context3.getOutputBlock().multiplyBy(F3_gain);
 
+    app.replaceWithSumOf(context1.getOutputBlock(), context2.getOutputBlock());
+    out.replaceWithSumOf(app, context3.getOutputBlock());
+    
     float out_magnitude = buffer.getMagnitude(0,buffer.getNumSamples());
-    buffer.applyGain(1/out_magnitude);
-    buffer.applyGain(in_magnitude);
 }
 
 //==============================================================================
