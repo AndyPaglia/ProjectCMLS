@@ -13,7 +13,7 @@
   },
   "Classes": [
     {
-      "CID": "ABCDEF019182FAEB4D616E755A6F3069",
+      "CID": "ABCDEF019182FAEB4D616E75496B7064",
       "Category": "Audio Module Class",
       "Name": "CMLS-Juce",
       "Vendor": "yourcompany",
@@ -28,7 +28,7 @@
       ],
     },
     {
-      "CID": "ABCDEF011234ABCD4D616E755A6F3069",
+      "CID": "ABCDEF011234ABCD4D616E75496B7064",
       "Category": "Component Controller Class",
       "Name": "CMLS-Juce",
       "Vendor": "yourcompany",
@@ -43,7 +43,7 @@
       ],
     },
     {
-      "CID": "ABCDEF01C0DEF00D4D616E755A6F3069",
+      "CID": "ABCDEF01C0DEF00D4D616E75496B7064",
       "Category": "Plugin Compatibility Class",
       "Name": "CMLS-Juce",
       "Vendor": "yourcompany",

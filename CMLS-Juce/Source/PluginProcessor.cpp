@@ -7,34 +7,29 @@
 */
 
 #include "PluginProcessor.h"
+#include <memory>
 #include "PluginEditor.h"
 
 //==============================================================================
-SimpleEQAudioProcessor::SimpleEQAudioProcessor()
-#ifndef JucePlugin_PreferredChannelConfigurations
+CMLSJuceAudioProcessor::CMLSJuceAudioProcessor()
      : AudioProcessor (BusesProperties()
-                     #if ! JucePlugin_IsMidiEffect
-                      #if ! JucePlugin_IsSynth
                        .withInput  ("Input",  juce::AudioChannelSet::stereo(), true)
-                      #endif
                        .withOutput ("Output", juce::AudioChannelSet::stereo(), true)
-                     #endif
                        )
-#endif
 {
 }
 
-SimpleEQAudioProcessor::~SimpleEQAudioProcessor()
+CMLSJuceAudioProcessor::~CMLSJuceAudioProcessor()
 {
 }
 
 //==============================================================================
-const juce::String SimpleEQAudioProcessor::getName() const
+const juce::String CMLSJuceAudioProcessor::getName() const
 {
     return JucePlugin_Name;
 }
 
-bool SimpleEQAudioProcessor::acceptsMidi() const
+bool CMLSJuceAudioProcessor::acceptsMidi() const
 {
    #if JucePlugin_WantsMidiInput
     return true;
@@ -43,7 +38,7 @@ bool SimpleEQAudioProcessor::acceptsMidi() const
    #endif
 }
 
-bool SimpleEQAudioProcessor::producesMidi() const
+bool CMLSJuceAudioProcessor::producesMidi() const
 {
    #if JucePlugin_ProducesMidiOutput
     return true;
@@ -52,7 +47,7 @@ bool SimpleEQAudioProcessor::producesMidi() const
    #endif
 }
 
-bool SimpleEQAudioProcessor::isMidiEffect() const
+bool CMLSJuceAudioProcessor::isMidiEffect() const
 {
    #if JucePlugin_IsMidiEffect
     return true;
@@ -61,72 +56,64 @@ bool SimpleEQAudioProcessor::isMidiEffect() const
    #endif
 }
 
-double SimpleEQAudioProcessor::getTailLengthSeconds() const
+double CMLSJuceAudioProcessor::getTailLengthSeconds() const
 {
     return 0.0;
 }
 
-int SimpleEQAudioProcessor::getNumPrograms()
+int CMLSJuceAudioProcessor::getNumPrograms()
 {
     return 1;   // NB: some hosts don't cope very well if you tell them there are 0 programs,
                 // so this should be at least 1, even if you're not really implementing programs.
 }
 
-int SimpleEQAudioProcessor::getCurrentProgram()
+int CMLSJuceAudioProcessor::getCurrentProgram()
 {
     return 0;
 }
 
-void SimpleEQAudioProcessor::setCurrentProgram (int index)
+void CMLSJuceAudioProcessor::setCurrentProgram (int index)
 {
 }
 
-const juce::String SimpleEQAudioProcessor::getProgramName (int index)
+const juce::String CMLSJuceAudioProcessor::getProgramName (int index)
 {
     return {};
 }
 
-void SimpleEQAudioProcessor::changeProgramName (int index, const juce::String& newName)
+void CMLSJuceAudioProcessor::changeProgramName (int index, const juce::String& newName)
 {
 }
 
 //==============================================================================
-void SimpleEQAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
+void CMLSJuceAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
     // Use this method as the place to do any pre-playback
     // initialisation that you need..
+    Fs = sampleRate;
+    juce::dsp::ProcessSpec s;
+    s.maximumBlockSize = samplesPerBlock;
+    s.numChannels= 1;
+    s.sampleRate = sampleRate;
+
+    Formant_1.prepare(s);
+    Formant_1.reset();
     
-    juce::dsp::ProcessSpec spec;
+    Formant_2.prepare(s);
+    Formant_2.reset();
     
-    spec.maximumBlockSize = samplesPerBlock;
-    
-    spec.numChannels = 1;
-    
-    spec.sampleRate = sampleRate;
-    
-    leftChain.prepare(spec);
-    rightChain.prepare(spec);
-    
-    updateFilters();
-    
-    leftChannelFifo.prepare(samplesPerBlock);
-    rightChannelFifo.prepare(samplesPerBlock);
-    
-    osc.initialise([](float x) { return std::sin(x); });
-    
-    spec.numChannels = getTotalNumOutputChannels();
-    osc.prepare(spec);
-    osc.setFrequency(440);
+    Formant_2.prepare(s);
+    Formant_2.reset();
 }
 
-void SimpleEQAudioProcessor::releaseResources()
+void CMLSJuceAudioProcessor::releaseResources()
 {
     // When playback stops, you can use this as an opportunity to free up any
     // spare memory, etc.
 }
 
 #ifndef JucePlugin_PreferredChannelConfigurations
-bool SimpleEQAudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
+bool CMLSJuceAudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
 {
   #if JucePlugin_IsMidiEffect
     juce::ignoreUnused (layouts);
@@ -136,8 +123,8 @@ bool SimpleEQAudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts)
     // In this template code we only support mono or stereo.
     // Some plugin hosts, such as certain GarageBand versions, will only
     // load plugins that support stereo bus layouts.
-    if (//layouts.getMainOutputChannelSet() != juce::AudioChannelSet::stereo()
-        layouts.getMainOutputChannelSet() != juce::AudioChannelSet::stereo())
+    if (layouts.getMainOutputChannelSet() != juce::AudioChannelSet::mono()
+     && layouts.getMainOutputChannelSet() != juce::AudioChannelSet::stereo())
         return false;
 
     // This checks if the input layout matches the output layout
@@ -151,7 +138,7 @@ bool SimpleEQAudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts)
 }
 #endif
 
-void SimpleEQAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
+void CMLSJuceAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
 {
     juce::ScopedNoDenormals noDenormals;
     auto totalNumInputChannels  = getTotalNumInputChannels();
@@ -166,200 +153,100 @@ void SimpleEQAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juc
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear (i, 0, buffer.getNumSamples());
 
-    updateFilters();
+    float in_magnitude = buffer.getMagnitude(0,buffer.getNumSamples());
+    buffer.applyGain(1/in_magnitude);
+
+    juce::AudioBuffer<float> copy1;
+    copy1.makeCopyOf<float>(buffer,1); 
+    juce::AudioBuffer<float> copy2;
+    copy2.makeCopyOf<float>(buffer,1); 
+    juce::AudioBuffer<float> copy3;
+    copy3.makeCopyOf<float>(buffer,1); 
+
+    juce::dsp::AudioBlock<float> block1(copy1);
+    juce::dsp::AudioBlock<float> block2(copy2);
+    juce::dsp::AudioBlock<float> block3(copy3);
     
-    juce::dsp::AudioBlock<float> block(buffer);
+    float F1_freq = *tree_state.getRawParameterValue("F1_Freq"); 
+    float F1_gain = *tree_state.getRawParameterValue("F1_Gain");
+    float F1_q = *tree_state.getRawParameterValue("F1_Q");
+
+    float F2_freq = *tree_state.getRawParameterValue("F2_Freq"); 
+    float F2_gain = *tree_state.getRawParameterValue("F2_Gain");
+    float F2_q = *tree_state.getRawParameterValue("F2_Q");
+
+    float F3_freq = *tree_state.getRawParameterValue("F3_Freq"); 
+    float F3_gain = *tree_state.getRawParameterValue("F3_Gain");
+    float F3_q = *tree_state.getRawParameterValue("F3_Q");
+
+    Formant_1.state = *juce::dsp::IIR::Coefficients<float>::makeBandPass(Fs,F1_freq,F1_q);
+    Formant_2.state = *juce::dsp::IIR::Coefficients<float>::makeBandPass(Fs,F2_freq,F2_q);
+    Formant_3.state = *juce::dsp::IIR::Coefficients<float>::makeBandPass(Fs,F3_freq,F3_q);
+
+    auto context1 =juce::dsp::ProcessContextReplacing<float>(block1);
+    auto context2 =juce::dsp::ProcessContextReplacing<float>(block2);
+    auto context3 =juce::dsp::ProcessContextReplacing<float>(block3);
+
+    Formant_1.process(context1);
+    Formant_2.process(context2);
+    Formant_3.process(context3);
+
     
-//    buffer.clear();
-//
-//    for( int i = 0; i < buffer.getNumSamples(); ++i )
-//    {
-//        buffer.setSample(0, i, osc.processSample(0));
-//    }
-//
-//    juce::dsp::ProcessContextReplacing<float> stereoContext(block);
-//    osc.process(stereoContext);
-    
-    auto leftBlock = block.getSingleChannelBlock(0);
-    auto rightBlock = block.getSingleChannelBlock(1);
-    
-    juce::dsp::ProcessContextReplacing<float> leftContext(leftBlock);
-    juce::dsp::ProcessContextReplacing<float> rightContext(rightBlock);
-    
-    leftChain.process(leftContext);
-    rightChain.process(rightContext);
-    
-    leftChannelFifo.update(buffer);
-    rightChannelFifo.update(buffer);
-    
+    for (int i = 0; i < buffer.getNumChannels(); i++) {
+        for (int j = 0; j < buffer.getNumSamples(); j++) {
+            float newval = context1.getOutputBlock().getSample(i,j)*F1_gain + context2.getOutputBlock().getSample(i,j)*F2_gain + context3.getOutputBlock().getSample(i,j)*F3_gain;
+            buffer.setSample(i, j, newval);
+        }
+    }
+
+    float out_magnitude = buffer.getMagnitude(0,buffer.getNumSamples());
+    buffer.applyGain(1/out_magnitude);
+    buffer.applyGain(in_magnitude);
 }
 
 //==============================================================================
-bool SimpleEQAudioProcessor::hasEditor() const
+bool CMLSJuceAudioProcessor::hasEditor() const
 {
     return true; // (change this to false if you choose to not supply an editor)
 }
 
-juce::AudioProcessorEditor* SimpleEQAudioProcessor::createEditor()
+juce::AudioProcessorEditor* CMLSJuceAudioProcessor::createEditor()
 {
-    return new SimpleEQAudioProcessorEditor (*this);
-//    return new juce::GenericAudioProcessorEditor(*this);
+    return new CMLSJuceAudioProcessorEditor (*this);
 }
 
 //==============================================================================
-void SimpleEQAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
+void CMLSJuceAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
 {
     // You should use this method to store your parameters in the memory block.
     // You could do that either as raw data, or use the XML or ValueTree classes
     // as intermediaries to make it easy to save and load complex data.
-    
-    juce::MemoryOutputStream mos(destData, true);
-    apvts.state.writeToStream(mos);
 }
 
-void SimpleEQAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
+void CMLSJuceAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
 {
     // You should use this method to restore your parameters from this memory block,
     // whose contents will have been created by the getStateInformation() call.
-    auto tree = juce::ValueTree::readFromData(data, sizeInBytes);
-    if( tree.isValid() )
-    {
-        apvts.replaceState(tree);
-        updateFilters();
-    }
-}
-
-ChainSettings getChainSettings(juce::AudioProcessorValueTreeState& apvts)
-{
-    ChainSettings settings;
-    
-    settings.lowCutFreq = apvts.getRawParameterValue("LowCut Freq")->load();
-    settings.highCutFreq = apvts.getRawParameterValue("HighCut Freq")->load();
-    settings.peakFreq = apvts.getRawParameterValue("Peak Freq")->load();
-    settings.peakGainInDecibels = apvts.getRawParameterValue("Peak Gain")->load();
-    settings.peakQuality = apvts.getRawParameterValue("Peak Quality")->load();
-    settings.lowCutSlope = static_cast<Slope>(apvts.getRawParameterValue("LowCut Slope")->load());
-    settings.highCutSlope = static_cast<Slope>(apvts.getRawParameterValue("HighCut Slope")->load());
-    
-    settings.lowCutBypassed = apvts.getRawParameterValue("LowCut Bypassed")->load() > 0.5f;
-    settings.peakBypassed = apvts.getRawParameterValue("Peak Bypassed")->load() > 0.5f;
-    settings.highCutBypassed = apvts.getRawParameterValue("HighCut Bypassed")->load() > 0.5f;
-    
-    return settings;
-}
-
-Coefficients makePeakFilter(const ChainSettings& chainSettings, double sampleRate)
-{
-    return juce::dsp::IIR::Coefficients<float>::makePeakFilter(sampleRate,
-                                                               chainSettings.peakFreq,
-                                                               chainSettings.peakQuality,
-                                                               juce::Decibels::decibelsToGain(chainSettings.peakGainInDecibels));
-}
-
-void SimpleEQAudioProcessor::updatePeakFilter(const ChainSettings &chainSettings)
-{
-    auto peakCoefficients = makePeakFilter(chainSettings, getSampleRate());
-    
-    leftChain.setBypassed<ChainPositions::Peak>(chainSettings.peakBypassed);
-    rightChain.setBypassed<ChainPositions::Peak>(chainSettings.peakBypassed);
-    
-    updateCoefficients(leftChain.get<ChainPositions::Peak>().coefficients, peakCoefficients);
-    updateCoefficients(rightChain.get<ChainPositions::Peak>().coefficients, peakCoefficients);
-}
-
-void updateCoefficients(Coefficients &old, const Coefficients &replacements)
-{
-    *old = *replacements;
-}
-
-void SimpleEQAudioProcessor::updateLowCutFilters(const ChainSettings &chainSettings)
-{
-    auto cutCoefficients = makeLowCutFilter(chainSettings, getSampleRate());
-    auto& leftLowCut = leftChain.get<ChainPositions::LowCut>();
-    auto& rightLowCut = rightChain.get<ChainPositions::LowCut>();
-    
-    leftChain.setBypassed<ChainPositions::LowCut>(chainSettings.lowCutBypassed);
-    rightChain.setBypassed<ChainPositions::LowCut>(chainSettings.lowCutBypassed);
-    
-    updateCutFilter(rightLowCut, cutCoefficients, chainSettings.lowCutSlope);
-    updateCutFilter(leftLowCut, cutCoefficients, chainSettings.lowCutSlope);
-}
-
-void SimpleEQAudioProcessor::updateHighCutFilters(const ChainSettings &chainSettings)
-{
-    auto highCutCoefficients = makeHighCutFilter(chainSettings, getSampleRate());
-    
-    auto& leftHighCut = leftChain.get<ChainPositions::HighCut>();
-    auto& rightHighCut = rightChain.get<ChainPositions::HighCut>();
-    
-    leftChain.setBypassed<ChainPositions::HighCut>(chainSettings.highCutBypassed);
-    rightChain.setBypassed<ChainPositions::HighCut>(chainSettings.highCutBypassed);
-    
-    updateCutFilter(leftHighCut, highCutCoefficients, chainSettings.highCutSlope);
-    updateCutFilter(rightHighCut, highCutCoefficients, chainSettings.highCutSlope);
-}
-
-void SimpleEQAudioProcessor::updateFilters()
-{
-    auto chainSettings = getChainSettings(apvts);
-    
-    updateLowCutFilters(chainSettings);
-    updatePeakFilter(chainSettings);
-    updateHighCutFilters(chainSettings);
-}
-
-juce::AudioProcessorValueTreeState::ParameterLayout SimpleEQAudioProcessor::createParameterLayout()
-{
-    juce::AudioProcessorValueTreeState::ParameterLayout layout;
-    
-    layout.add(std::make_unique<juce::AudioParameterFloat>("LowCut Freq",
-                                                           "LowCut Freq",
-                                                           juce::NormalisableRange<float>(20.f, 20000.f, 1.f, 0.25f),
-                                                           20.f));
-    
-    layout.add(std::make_unique<juce::AudioParameterFloat>("HighCut Freq",
-                                                           "HighCut Freq",
-                                                           juce::NormalisableRange<float>(20.f, 20000.f, 1.f, 0.25f),
-                                                           20000.f));
-    
-    layout.add(std::make_unique<juce::AudioParameterFloat>("Peak Freq",
-                                                           "Peak Freq",
-                                                           juce::NormalisableRange<float>(20.f, 20000.f, 1.f, 0.25f),
-                                                           750.f));
-    
-    layout.add(std::make_unique<juce::AudioParameterFloat>("Peak Gain",
-                                                           "Peak Gain",
-                                                           juce::NormalisableRange<float>(-24.f, 24.f, 0.5f, 1.f),
-                                                           0.0f));
-    
-    layout.add(std::make_unique<juce::AudioParameterFloat>("Peak Quality",
-                                                           "Peak Quality",
-                                                           juce::NormalisableRange<float>(0.1f, 10.f, 0.05f, 1.f),
-                                                           1.f));
-    
-    juce::StringArray stringArray;
-    for( int i = 0; i < 4; ++i )
-    {
-        juce::String str;
-        str << (12 + i*12);
-        str << " db/Oct";
-        stringArray.add(str);
-    }
-    
-    layout.add(std::make_unique<juce::AudioParameterChoice>("LowCut Slope", "LowCut Slope", stringArray, 0));
-    layout.add(std::make_unique<juce::AudioParameterChoice>("HighCut Slope", "HighCut Slope", stringArray, 0));
-    
-    layout.add(std::make_unique<juce::AudioParameterBool>("LowCut Bypassed", "LowCut Bypassed", false));
-    layout.add(std::make_unique<juce::AudioParameterBool>("Peak Bypassed", "Peak Bypassed", false));
-    layout.add(std::make_unique<juce::AudioParameterBool>("HighCut Bypassed", "HighCut Bypassed", false));
-    layout.add(std::make_unique<juce::AudioParameterBool>("Analyzer Enabled", "Analyzer Enabled", true));
-    
-    return layout;
 }
 
 //==============================================================================
 // This creates new instances of the plugin..
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 {
-    return new SimpleEQAudioProcessor();
+    return new CMLSJuceAudioProcessor();
+}
+
+
+juce::AudioProcessorValueTreeState::ParameterLayout CMLSJuceAudioProcessor::createLayout() {
+    std::vector<std::unique_ptr<juce::RangedAudioParameter>> layout;
+    layout.push_back(std::make_unique<juce::AudioParameterFloat>("F1_Freq", "Formant 1 Freq", juce::NormalisableRange<float>(20.f, 20000.f,1.f, 1.f), 20.f));
+    layout.push_back(std::make_unique<juce::AudioParameterFloat>("F2_Freq", "Formant 2 Freq", juce::NormalisableRange<float>(20.f, 20000.f,1.f, 1.f), 20.f));
+    layout.push_back(std::make_unique<juce::AudioParameterFloat>("F3_Freq", "Formant 3 Freq", juce::NormalisableRange<float>(20.f, 20000.f,1.f, 1.f), 20.f)); 
+    layout.push_back(std::make_unique<juce::AudioParameterFloat>("F1_Gain", "Formant 1 Gain", juce::NormalisableRange<float>(-24.f, 0.f,1.f, 1.f), 0.f));
+    layout.push_back(std::make_unique<juce::AudioParameterFloat>("F2_Gain", "Formant 2 Gain", juce::NormalisableRange<float>(-24.f, 0.f,1.f, 1.f), 0.f));
+    layout.push_back(std::make_unique<juce::AudioParameterFloat>("F3_Gain", "Formant 3 Gain", juce::NormalisableRange<float>(-24.f, 0.f,1.f, 1.f), 0.f));
+    layout.push_back(std::make_unique<juce::AudioParameterFloat>("F1_Q", "Formant 1 Qfact", juce::NormalisableRange<float>(0.1f, 10.f,0.5f, 1.f), 1.f));
+    layout.push_back(std::make_unique<juce::AudioParameterFloat>("F2_Q", "Formant 2 Qfact", juce::NormalisableRange<float>(0.1f, 10.f,0.5f, 1.f), 1.f));
+    layout.push_back(std::make_unique<juce::AudioParameterFloat>("F3_Q", "Formant 3 Qfact", juce::NormalisableRange<float>(0.1f, 10.f,0.5f, 1.f), 1.f));
+    return {layout.begin(), layout.end()};
 }
