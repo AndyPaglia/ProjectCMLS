@@ -13,7 +13,8 @@
 //==============================================================================
 /**
 */
-class CMLSJuceAudioProcessor  : public juce::AudioProcessor
+class CMLSJuceAudioProcessor  : public juce::AudioProcessor, private juce::OSCReceiver,
+private juce::OSCReceiver::ListenerWithOSCAddress<juce::OSCReceiver::MessageLoopCallback>
 {
 public:
     //==============================================================================
@@ -59,11 +60,19 @@ public:
   private:
     using Filter = juce::dsp::IIR::Filter<float>;
     using MonoFilterChain = juce::dsp::ProcessorChain<Filter, Filter, Filter>;
-    juce::dsp::ProcessorDuplicator <juce::dsp::IIR::Filter<float>, juce::dsp::IIR::Coefficients<float>> Formant_1;
-    juce::dsp::ProcessorDuplicator <juce::dsp::IIR::Filter<float>, juce::dsp::IIR::Coefficients<float>> Formant_2;
-    juce::dsp::ProcessorDuplicator <juce::dsp::IIR::Filter<float>, juce::dsp::IIR::Coefficients<float>> Formant_3;
+    juce::dsp::ProcessorDuplicator <juce::dsp::IIR::Filter<float>, juce::dsp::IIR::Coefficients<float>> Formant_1 {juce::dsp::IIR::Coefficients<float>::makeBandPass(44100,500.0f,0.1f)};
+    juce::dsp::ProcessorDuplicator <juce::dsp::IIR::Filter<float>, juce::dsp::IIR::Coefficients<float>> Formant_2 {juce::dsp::IIR::Coefficients<float>::makeBandPass(44100,1000.0f,0.1f)};
+    juce::dsp::ProcessorDuplicator <juce::dsp::IIR::Filter<float>, juce::dsp::IIR::Coefficients<float>> Formant_3 {juce::dsp::IIR::Coefficients<float>::makeBandPass(44100,2000.0f,0.1f)};
 
     float Fs;
+
+    float f1_band, f1_min;
+    float f2_band, f3_min;
+    float f3_band, f2_min;
+
+    uint8_t midi[2];
+
+    void oscMessageReceived (const juce::OSCMessage& message) override;
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (CMLSJuceAudioProcessor)
 };

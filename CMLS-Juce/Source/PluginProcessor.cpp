@@ -17,6 +17,11 @@ CMLSJuceAudioProcessor::CMLSJuceAudioProcessor()
                        .withOutput ("Output", juce::AudioChannelSet::stereo(), true)
                        )
 {
+        if (!connect(8000)) {
+        std::cerr << "Unable to connect to port 8000\n";
+       // juce::OSCReceiver::addListerner(this, "/cicco");
+        juce::OSCReceiver::addListener(this, "/handMovement/*");
+    }
 }
 
 CMLSJuceAudioProcessor::~CMLSJuceAudioProcessor()
@@ -90,10 +95,11 @@ void CMLSJuceAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlo
 {
     // Use this method as the place to do any pre-playback
     // initialisation that you need..
+
     Fs = sampleRate;
     juce::dsp::ProcessSpec s;
     s.maximumBlockSize = samplesPerBlock;
-    s.numChannels= 1;
+    s.numChannels = getTotalNumOutputChannels();
     s.sampleRate = sampleRate;
 
     Formant_1.prepare(s);
@@ -102,8 +108,10 @@ void CMLSJuceAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlo
     Formant_2.prepare(s);
     Formant_2.reset();
     
-    Formant_2.prepare(s);
-    Formant_2.reset();
+    Formant_3.prepare(s);
+    Formant_3.reset();
+
+        //addListener(this, "/handMovement/*");
 }
 
 void CMLSJuceAudioProcessor::releaseResources()
@@ -132,14 +140,12 @@ bool CMLSJuceAudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts)
     if (layouts.getMainOutputChannelSet() != layouts.getMainInputChannelSet())
         return false;
    #endif
-
     return true;
   #endif
 }
 #endif
 
-void CMLSJuceAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
-{
+void CMLSJuceAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages) {
     juce::ScopedNoDenormals noDenormals;
     auto totalNumInputChannels  = getTotalNumInputChannels();
     auto totalNumOutputChannels = getTotalNumOutputChannels();
@@ -154,6 +160,8 @@ void CMLSJuceAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juc
         buffer.clear (i, 0, buffer.getNumSamples());
 
     float in_magnitude = buffer.getMagnitude(0,buffer.getNumSamples());
+    float curr_freq1 = f1_min + (f1_band*midi[0])/127;
+    float curr_freq2 = f2_min + (f2_band*midi[1])/127;
 
     juce::AudioBuffer<float> copy1;
     copy1.makeCopyOf<float>(buffer,1); 
@@ -161,13 +169,14 @@ void CMLSJuceAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juc
     copy2.makeCopyOf<float>(buffer,1); 
     juce::AudioBuffer<float> copy3;
     copy3.makeCopyOf<float>(buffer,1); 
+    //juce::AudioBuffer<float> empty { buffer.getNumChannels(), buffer.getNumSamples() };
 
     juce::dsp::AudioBlock<float> block1(copy1);
     juce::dsp::AudioBlock<float> block2(copy2);
     juce::dsp::AudioBlock<float> block3(copy3);
     
     juce::dsp::AudioBlock<float> out(buffer);
-    juce::dsp::AudioBlock<float> app(buffer);
+    //juce::dsp::AudioBlock<float> app(empty);
     
     float F1_freq = *tree_state.getRawParameterValue("F1_Freq"); 
     float F1_gain = *tree_state.getRawParameterValue("F1_Gain");
@@ -181,17 +190,26 @@ void CMLSJuceAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juc
     float F3_gain = *tree_state.getRawParameterValue("F3_Gain");
     float F3_q = *tree_state.getRawParameterValue("F3_Q");
 
+    if(F1_freq != curr_freq1) {
+        F1_freq = curr_freq1;
+        tree_state.state.setProperty("F1_Freq", F1_freq, nullptr);
+    }
+    if(F2_freq != curr_freq2) {
+        F2_freq = curr_freq2;
+        tree_state.state.setProperty("F2_Freq", F2_freq, nullptr);
+    }
+
     Formant_1.state = *juce::dsp::IIR::Coefficients<float>::makeBandPass(Fs,F1_freq,F1_q);
     Formant_2.state = *juce::dsp::IIR::Coefficients<float>::makeBandPass(Fs,F2_freq,F2_q);
     Formant_3.state = *juce::dsp::IIR::Coefficients<float>::makeBandPass(Fs,F3_freq,F3_q);
 
-    block1 *= 1/in_magnitude;
-    block2 *= 1/in_magnitude;
-    block3 *= 1/in_magnitude;
+    block1.multiplyBy(1/in_magnitude);
+    block2.multiplyBy(1/in_magnitude);
+    block3.multiplyBy(1/in_magnitude);
 
-    auto context1 =juce::dsp::ProcessContextReplacing<float>(block1);
-    auto context2 =juce::dsp::ProcessContextReplacing<float>(block2);
-    auto context3 =juce::dsp::ProcessContextReplacing<float>(block3);
+    auto context1 = juce::dsp::ProcessContextReplacing<float>(block1);
+    auto context2 = juce::dsp::ProcessContextReplacing<float>(block2);
+    auto context3 = juce::dsp::ProcessContextReplacing<float>(block3);
 
     Formant_1.process(context1);
     Formant_2.process(context2);
@@ -201,10 +219,12 @@ void CMLSJuceAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juc
     context2.getOutputBlock().multiplyBy(F2_gain);
     context3.getOutputBlock().multiplyBy(F3_gain);
 
-    app.replaceWithSumOf(context1.getOutputBlock(), context2.getOutputBlock());
-    out.replaceWithSumOf(app, context3.getOutputBlock());
-    
+    for (int j; j < out.getNumChannels(); j++)
+    for (int i = 0; i < out.getNumSamples(); i++) {
+        out.setSample(j, i, context1.getOutputBlock().getSample(j,i) + context2.getOutputBlock().getSample(j,i) + context3.getOutputBlock().getSample(j,i));
+    }
     float out_magnitude = buffer.getMagnitude(0,buffer.getNumSamples());
+    out.multiplyBy(in_magnitude/out_magnitude);
 }
 
 //==============================================================================
@@ -252,4 +272,16 @@ juce::AudioProcessorValueTreeState::ParameterLayout CMLSJuceAudioProcessor::crea
     layout.push_back(std::make_unique<juce::AudioParameterFloat>("F2_Q", "Formant 2 Qfact", juce::NormalisableRange<float>(0.1f, 10.f,0.5f, 1.f), 1.f));
     layout.push_back(std::make_unique<juce::AudioParameterFloat>("F3_Q", "Formant 3 Qfact", juce::NormalisableRange<float>(0.1f, 10.f,0.5f, 1.f), 1.f));
     return {layout.begin(), layout.end()};
+}
+
+void CMLSJuceAudioProcessor::oscMessageReceived(const juce::OSCMessage& message) {
+    if (message.size() == 1 && message[0].isInt32()) {
+        if (message.getAddressPattern() == "/handMovement/x") {
+            midi[0] = message[0].getInt32();
+            std::printf("value obtined = %i\n", message[0].getInt32());
+        } else if (message.getAddressPattern() == "/handMovement/y") {
+            midi[1] = message[0].getInt32();
+            std::cout << "message obtained = " << message[0].getInt32() << std::endl;
+        }
+    }
 }
