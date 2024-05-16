@@ -163,7 +163,10 @@ void CMLSJuceAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce
     }
 
     juce::dsp::AudioBlock<float> block(buffer);
-    std::vector<juce::dsp::AudioBlock<float>> L_blocks, R_blocks;
+    // std::vector<juce::dsp::ProcessContextReplacing<float>> L_ctxs, R_ctxs;
+    juce::AudioBuffer<float> Lb(1,buffer.getNumSamples());
+    juce::AudioBuffer<float> Rb(1,buffer.getNumSamples());
+    juce::dsp::AudioBlock<float> L_out(Lb), R_out(Rb);
 
     // --------- From here
     float L_mag = buffer.getMagnitude(0,0,buffer.getNumSamples());
@@ -173,15 +176,15 @@ void CMLSJuceAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce
     float Qs[3];
 
     freqs[0] = *tree_state.getRawParameterValue("F1_Freq"); 
-    gains[0] = *tree_state.getRawParameterValue("F1_Gain");
+    gains[0] =  std::pow(10,0.1*(*tree_state.getRawParameterValue("F1_Gain")));
     Qs[0] = *tree_state.getRawParameterValue("F1_Q");
 
     freqs[1] = *tree_state.getRawParameterValue("F2_Freq"); 
-    gains[1] = *tree_state.getRawParameterValue("F2_Gain");
+    gains[1] = std::pow(10,0.1*(*tree_state.getRawParameterValue("F2_Gain")));
     Qs[1] = *tree_state.getRawParameterValue("F2_Q");
 
     freqs[2] = *tree_state.getRawParameterValue("F3_Freq"); 
-    gains[2] = *tree_state.getRawParameterValue("F3_Gain");
+    gains[2] =  std::pow(10,0.1*(*tree_state.getRawParameterValue("F3_Gain")));
     Qs[2] = *tree_state.getRawParameterValue("F3_Q");
 
     for(int i = 0; i < L_bands.size(); i++){
@@ -190,21 +193,30 @@ void CMLSJuceAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce
 
         L_bands[i].copyFrom(0, 0, block.getChannelPointer(0), L_bands[i].getNumSamples());
         R_bands[i].copyFrom(0, 0, block.getChannelPointer(1), R_bands[i].getNumSamples());
-        std::cout << "Lbands[" << i <<"] magnitude = " << L_bands[i].getMagnitude(0, L_bands[i].getNumSamples()) << "\n";
-        std::cout << "Rbands[" << i <<"] magnitude = " << R_bands[i].getMagnitude(0, R_bands[i].getNumSamples()) << "\n";
-        std::cout << "buffer L magnitude = " << buffer.getMagnitude(0, 0, buffer.getNumSamples()) << "\n";
-        std::cout << "buffer R magnitude = " << buffer.getMagnitude(1, 0, buffer.getNumSamples()) << "\n";
-
+        
         juce::dsp::AudioBlock<float> L_block(L_bands[i]);
         juce::dsp::AudioBlock<float> R_block(R_bands[i]);
+        juce::dsp::ProcessContextReplacing<float> L_ctx(L_block);
+        juce::dsp::ProcessContextReplacing<float> R_ctx(R_block);
+        //L_ctxs.push_back(std::move(L_ctx));
+        //R_ctxs.push_back(std::move(R_ctx));
 
-        
         L_Peak.coefficients = *juce::dsp::IIR::Coefficients<float>::makePeakFilter(Fs, freqs[i], Qs[i], gains[i]/L_mag);
-        L_Peak.process(juce::dsp::ProcessContextReplacing<float>(L_block));
+        L_Peak.process(L_ctx);
         R_Peak.coefficients = *juce::dsp::IIR::Coefficients<float>::makePeakFilter(Fs, freqs[i], Qs[i], gains[i]/R_mag);
-        R_Peak.process(juce::dsp::ProcessContextReplacing<float>(R_block));
+        R_Peak.process(R_ctx);
+        L_out.add(L_ctx.getOutputBlock());
+        R_out.add(R_ctx.getOutputBlock());
     }
+    
+    auto L = block.getSingleChannelBlock(0);
+    auto R = block.getSingleChannelBlock(1);
 
+    L.swap(L_out);
+    R.swap(R_out);
+    
+    //L_ctxs.clear();
+    //R_ctxs.clear();
     // float l_Mval = 0;
     // float r_Mval = 0;
     // for(int j = 0; j < block.getNumSamples(); j++){
