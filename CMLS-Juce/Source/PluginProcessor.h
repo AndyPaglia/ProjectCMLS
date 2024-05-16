@@ -59,12 +59,11 @@ public:
 
   private:
     using Filter = juce::dsp::IIR::Filter<float>;
-    using MonoFilterChain = juce::dsp::ProcessorChain<Filter, Filter, Filter>;
-    juce::dsp::ProcessorDuplicator <juce::dsp::IIR::Filter<float>, juce::dsp::IIR::Coefficients<float>> Formant_1 {juce::dsp::IIR::Coefficients<float>::makeBandPass(44100,500.0f,0.1f)};
-    juce::dsp::ProcessorDuplicator <juce::dsp::IIR::Filter<float>, juce::dsp::IIR::Coefficients<float>> Formant_2 {juce::dsp::IIR::Coefficients<float>::makeBandPass(44100,1000.0f,0.1f)};
-    juce::dsp::ProcessorDuplicator <juce::dsp::IIR::Filter<float>, juce::dsp::IIR::Coefficients<float>> Formant_3 {juce::dsp::IIR::Coefficients<float>::makeBandPass(44100,2000.0f,0.1f)};
-
     float Fs;
+
+    Filter L_Peak, R_Peak;
+
+    std::vector<juce::AudioBuffer<float>> L_bands,R_bands;
 
     float f1_band, f1_min;
     float f2_band, f3_min;
