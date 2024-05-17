@@ -5,5 +5,5 @@ MyExamples/PluginEditor.cpp
 MyExamples/PluginProcessor.cpp
 MyExamples/PluginEditor.h
 MyExamples/PluginProcessor.h
-/home/mattia/Sdy/Cmls/ProjectCMLS/CMLS-Juce/Builds/LinuxMakefile/build/*
-/home/mattia/Sdy/Cmls/ProjectCMLS/CMLS-Juce/Builds/LinuxMakefile/pre_build/*
+CMLS-Juce/Builds/LinuxMakefile/build/*
+CMLS-Juce/Builds/LinuxMakefile/pre_build/*
