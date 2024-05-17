@@ -164,19 +164,22 @@ void CMLSJuceAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i) {
         buffer.clear (i, 0, buffer.getNumSamples());
     }
-
+    
     juce::dsp::AudioBlock<float> block(buffer);
+    juce::dsp::ProcessContextReplacing<float> ctx1(block);
+    juce::dsp::ProcessContextReplacing<float> ctx2(block);
+    juce::dsp::ProcessContextReplacing<float> ctx3(block);
     // std::vector<juce::dsp::ProcessContextReplacing<float>> L_ctxs, R_ctxs;
 
     // --------- From here
-    float L_mag = buffer.getMagnitude(0,0,buffer.getNumSamples());
-    float R_mag = buffer.getMagnitude(1,0,buffer.getNumSamples());
+    std::vector<float> mags;
+    for (int i = 0; i < buffer.getNumChannels(); i++) mags.push_back(buffer.getMagnitude(i,0,buffer.getNumSamples()));
     float freqs[3];
     float gains[3];
     float Qs[3];
 
     freqs[0] = *tree_state.getRawParameterValue("F1_Freq"); 
-    gains[0] =  2+std::pow(10,0.1*(*tree_state.getRawParameterValue("F1_Gain")));
+    gains[0] =  20+std::pow(10,0.1*(*tree_state.getRawParameterValue("F1_Gain")));
     Qs[0] = *tree_state.getRawParameterValue("F1_Q");
 
     freqs[1] = *tree_state.getRawParameterValue("F2_Freq"); 
@@ -187,9 +190,22 @@ void CMLSJuceAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce
     gains[2] =  2+std::pow(10,0.1*(*tree_state.getRawParameterValue("F3_Gain")));
     Qs[2] = *tree_state.getRawParameterValue("F3_Q");
 
-    juce::dsp::ProcessContextReplacing<float> ctx(block);
     Peak1.state = *juce::dsp::IIR::Coefficients<float>::makePeakFilter(Fs, freqs[0], Qs[0], gains[0]);//gains[0]/L_mag);
-    Peak1.process(ctx);
+    Peak1.process(ctx1);
+    Peak2.state = *juce::dsp::IIR::Coefficients<float>::makePeakFilter(Fs, freqs[1], Qs[1], gains[1]);//gains[0]/L_mag);
+    Peak2.process(ctx2);
+    Peak3.state = *juce::dsp::IIR::Coefficients<float>::makePeakFilter(Fs, freqs[2], Qs[2], gains[2]);//gains[0]/L_mag);
+    Peak3.process(ctx3);
+    for(int i = 0; i < buffer.getNumChannels(); i++){
+        auto writer = buffer.getWritePointer(i);
+        for (int j = 0; j < buffer.getNumSamples(); j++)
+        {
+            writer[j] = mags[i]*(ctx1.getOutputBlock().getSample(i,j) + ctx2.getOutputBlock().getSample(i,j) + ctx3.getOutputBlock().getSample(i,j));
+        }
+        
+    }
+    // buffer.copyFrom(0,0,ctx.getOutputBlock().getChannelPointer(0), buffer.getNumSamples());
+    // buffer.copyFrom(1,0,ctx.getOutputBlock().getChannelPointer(1), buffer.getNumSamples());
 
     // std::printf("midi[0] = %i --- midi[1] = %i\n", midi[0], midi[1]);
     // for(int i = 0; i < L_bands.size(); i++){
