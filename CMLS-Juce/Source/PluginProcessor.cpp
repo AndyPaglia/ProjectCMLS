@@ -191,7 +191,7 @@ void CMLSJuceAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce
     Peak1.state = *juce::dsp::IIR::Coefficients<float>::makePeakFilter(Fs, freqs[0], Qs[0], gains[0]);//gains[0]/L_mag);
     Peak1.process(ctx);
 
-    std::printf("midi[0] = %i --- midi[1] = %i\n", midi[0], midi[1]);
+    // std::printf("midi[0] = %i --- midi[1] = %i\n", midi[0], midi[1]);
     // for(int i = 0; i < L_bands.size(); i++){
     //     L_bands[i].clear(0,L_bands[i].getNumSamples());
     //     R_bands[i].clear(0,L_bands[i].getNumSamples());

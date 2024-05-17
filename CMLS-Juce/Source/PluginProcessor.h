@@ -58,10 +58,12 @@ public:
     juce::AudioProcessorValueTreeState tree_state {*this, nullptr, "Parameters", createLayout()};
 
   private:
-    using Filter = juce::dsp::IIR::Filter<float>;
+    using Filter = juce::dsp::ProcessorDuplicator<juce::dsp::IIR::Filter<float>,juce::dsp::IIR::Coefficients<float>>;
     float Fs;
 
-    Filter L_Peak, R_Peak;
+    Filter Peak1 {juce::dsp::IIR::Coefficients<float>::makePeakFilter(44100,500.0f,0.1f, 1.f)};
+    Filter Peak2 {juce::dsp::IIR::Coefficients<float>::makePeakFilter(44100,1000.0f,0.1f, 1.f)};
+    Filter Peak3 {juce::dsp::IIR::Coefficients<float>::makePeakFilter(44100,2000.0f,0.1f, 1.f)};
 
     std::vector<juce::AudioBuffer<float>> L_bands,R_bands;
 
