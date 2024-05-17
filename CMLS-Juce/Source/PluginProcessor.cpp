@@ -116,7 +116,6 @@ void CMLSJuceAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlo
         L_bands.push_back(std::move(l));
         R_bands.push_back(std::move(r));
     }
-    std::printf("testing for gitignore");
 }
 
 void CMLSJuceAudioProcessor::releaseResources()
