@@ -3,7 +3,7 @@ s.boot;
 //CONNESSIONE ALLE SORGENTI MIDI
 MIDIClient.init;
 MIDIIn.connectAll;
-~noteSet=1000;
+~noteSet=64;
 //RICERCA DEL PLUGIN JUCE
 VSTPlugin.search;
 //BUS AUDIO IN USCITA
@@ -93,7 +93,7 @@ OSCdef(\synthSelection, {arg selector;
 MIDIdef.noteOn(\nota, {
 	arg vel, note;
 	~noteSet=note;
-	~b.set(\freq, ~noteSet);
+	~b.set(\freq, ~noteSet.midicps);
 });
 //INVIA MESSAGGIO OSC CON NOTA A PROCESSING
 ~n=NetAddr.new("127.0.0.1", 8000);
