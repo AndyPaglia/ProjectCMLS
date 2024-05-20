@@ -94,12 +94,11 @@ MIDIdef.noteOn(\nota, {
 	arg vel, note;
 	~noteSet=note;
 	~b.set(\freq, ~noteSet.midicps);
+	~b.set(\gate, 1);
 });
 //INVIA MESSAGGIO OSC CON NOTA A PROCESSING
 ~n=NetAddr.new("127.0.0.1", 8000);
-~n.sendMsg(
-	'/frequenzaNota', ~noteSet
-);
+~n.sendMsg('/frequenzaNota', ~noteSet);
 //RICEZIONE DELLE FREQUENZE DEI FILTRI DA ARDUINO
 MIDIdef.cc(\filter1, {
 	arg val;
@@ -110,11 +109,9 @@ MIDIdef.cc(\filter2, {
 	~fx.set(1, val);   //1 per la frequenza del primo filtro
 }, 13);
 //ATTIVAZIONE DELLA NOTA CON IL GATE
-MIDIdef.cc(\noteOn, {
-	arg On;
-	if (On==1, {~b.set(\gate, 1)
-}, {~b.set(\gate, 0)});,
-},	noteonChannel);
+MIDIdef.noteOff(\noteOn, {
+	~b.set(\gate, 0);
+});
 
 
 //SEZIONE PER RICEVERE E INVIARE MESSAGGI OSC A PROCESSING TRAMITE IL PROTOCOLLO OSC, HO UNA PORTA D'INGRESSO E UNA DI USCITA E L'INDIRIZZO IP PER INVIARLI ALLO STESSO HARDWARE è 127.0.0.1
@@ -122,7 +119,8 @@ MIDIdef.cc(\noteOn, {
 OSCdef.all;
 OSCdef(\detune, {arg detOsc;
 	~b.set(\det, detOsc);
-}, '/ang');
+	postln(detOsc);
+}, '/pos', ~r);
 OSCdef(\unison, {arg uniOsc;
 	~unison=uniOsc;
 }, '/ang');
