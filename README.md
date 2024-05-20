@@ -1,4 +1,7 @@
 # ProjectCMLS
+## Introduction
+Our project consists of a glove with a sensor which detects the hand’s movements and by using a Bluetooth communication, the data are collected by our interaction system unit. The system unit elaborates the data received, to create a MIDI message suitable for SuperCollider. SuperCollider is used to generate different kind of waves that can be chosen by the GUI. The waves are then elaborated by the VST, created by JUCE, to obtain a sound similar to human voice. The graphic interface, other than choosing the type of wave, give the possibility to change some parameters. This interface communicates through OSC messages to SuperCollider.
+
 ## Processing
 
 This Processing code creates an interactive graphical interface using the `controlP5` and `oscP5` libraries. The interface includes knob controls, a dropdown menu, and a movable circle. Additionally, the code enables communication via OSC (Open Sound Control) to interact with SuperCollider. Below is a description of the main features and sections of the code.
