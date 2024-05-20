@@ -18,34 +18,34 @@ SynthDef(\effetto, { arg bus;
 //TEMPLATE SEI 4 SYNTH
 (
 SynthDef("Sin", {
-	arg freq = 440, pan = 0, mul=1, det =0.2, bus;
+	arg freq = 440, pan = 0, mul=1, det =0.2, bus, amp=1, gate=1;
 	var out, detune;
 	detune = SinOsc.kr(freq: 8.2.rand, mul:5*det);
-	out = SinOsc.ar((freq - detune), mul: mul);
+	out = amp*EnvGen.kr(Env.adsr, gate, doneAction: 0)*SinOsc.ar((freq - detune), mul: mul);
 	Out.ar(bus, Pan2.ar(out,pan));
 }).add)
 (
 SynthDef("Impulse",
- {arg freq=466, pan =0, width=0.1, mul=1, det=0.2, bus, gate=0 ;
+ {arg freq=466, pan =0, width=0.1, mul=1, det=0.2, bus, amp=1, gate=1;
 	var sig, out, detune;
 	detune = SinOsc.kr  (freq: 8.2.rand, mul:5*det);
-	out = EnvGen.kr(Env.adsr, gate, doneAction: 0)*Pulse.ar (freq,width ,mul);
+	out = amp*EnvGen.kr(Env.adsr, gate, doneAction: 0)*Pulse.ar (freq,width ,mul);
 	Out.ar(bus, Pan2.ar(out,pan));
 } ).add;//we add it to the server
 )
 (
 SynthDef("Sawtooth", {
-	arg freq = 493, pan = 0, mul=1, det= 0.2, bus, gate=0;
+	arg freq = 493, pan = 0, mul=1, det= 0.2, bus, amp=1, gate=1;
 	var out, detune;
 	detune = SinOsc.kr  (freq: 8.2.rand, mul:5*det);
-	out = EnvGen.kr(Env.adsr, gate, doneAction: 0)*Saw.ar(freq, mul: mul);
+	out = amp*EnvGen.kr(Env.adsr, gate, doneAction: 0)*Saw.ar(freq, mul: mul);
 	Out.ar(bus, Pan2.ar(out,pan));
 }).add)
 (SynthDef("Square",
- {arg freq=466, pan =0, width=0.5, mul=1, det=0.2, bus, gate=0;
+ {arg freq=466, pan =0, width=0.5, mul=1, det=0.2, bus, amp=1, gate=1;
 	var out, detune;
 		detune = SinOsc.kr  (freq: 8.2.rand, mul:5*det);
-	out = EnvGen.kr(Env.adsr, gate, doneAction: 0)*Pulse.ar (freq,width ,mul);
+	out = amp*EnvGen.kr(Env.adsr, gate, doneAction: 0)*Pulse.ar (freq,width ,mul);
 	Out.ar(bus, Pan2.ar(out,pan));
 } ).add;//we add it to the server
 )
@@ -68,25 +68,27 @@ OSCdef(\synthSelection, {arg selector;
 	selector[1].postln;
 	switch(selector[1],
         1, {
-            b.free;
-			b = Synth.new(\Sin, [freq: ~noteSet, bus: ~myBus]);
+            ~b.free;
+			~b = Synth.new(\Sin, [freq: ~noteSet, bus: ~myBus]);
         },
         2, {
-            b.free;
-			b = Synth.new(\Impulse, [freq: ~noteSet, bus: ~myBus]);
+            ~b.free;
+			~b = Synth.new(\Impulse, [freq: ~noteSet, bus: ~myBus]);
         },
         3, {
-            b.free;
-			b = Synth.new(\Sawtooth, [freq: ~noteSet, bus: ~myBus]);
+            ~b.free;
+			~b = Synth.new(\Sawtooth, [freq: ~noteSet, bus: ~myBus]);
         },
         4, {
-            b.free;
-			b = Synth.new(\Square, [freq: ~noteSet, bus: ~myBus]);
+            ~b.free;
+			~b = Synth.new(\Square, [freq: ~noteSet, bus: ~myBus]);
         }
     );
 }, '/menu');
-
-
+//PER TESTARE
+~b.set(\freq, 200);
+~b.set(\gate, 1);
+~fx.set(8, 0);
 //RICEZIONE DELLE NOTE MIDI DA ARDUINO
 MIDIdef.noteOn(\nota, {
 	arg vel, note;
@@ -110,8 +112,8 @@ MIDIdef.cc(\filter2, {
 //ATTIVAZIONE DELLA NOTA CON IL GATE
 MIDIdef.cc(\noteOn, {
 	arg On;
-	if (On==1, {b.set(\gate, 1)
-}, {b.set(\gate, 0)});,
+	if (On==1, {~b.set(\gate, 1)
+}, {~b.set(\gate, 0)});,
 },	noteonChannel);
 
 
@@ -125,5 +127,5 @@ OSCdef(\unison, {arg uniOsc;
 	~unison=uniOsc;
 }, '/ang');
 OSCdef(\vol, {arg volOsc;
-	~amplitude=volOsc;
+	~b.set(\amp, volOsc);
 }, '/volume');
