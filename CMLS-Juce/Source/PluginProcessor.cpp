@@ -197,11 +197,11 @@ void CMLSJuceAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce
     gains[2] =  std::pow(10,0.1*(*tree_state.getRawParameterValue("F3_Gain")));
     Qs[2] = *tree_state.getRawParameterValue("F3_Q");
 
-    std::printf("freqs[0] = %f, Qs[0] = %f, gains[0] = %f\n", freqs[0], Qs[0], gains[0]);
+    calcFreqs();
 
-    F1.setCutoffFrequency(freqs[0]);
-    F2.setCutoffFrequency(freqs[1]);
-    F3.setCutoffFrequency(freqs[2]);
+    F1.setCutoffFrequency(freq1);
+    F2.setCutoffFrequency(freq2);
+    F3.setCutoffFrequency(freq3);
 
     F1.setResonance(Qs[0]);
     F2.setResonance(Qs[1]);
@@ -275,4 +275,10 @@ void CMLSJuceAudioProcessor::oscMessageReceived(const juce::OSCMessage& message)
             std::cout << "message obtained = " << message[0].getInt32() << std::endl;
         }
     }
+}
+
+void CMLSJuceAudioProcessor::calcFreqs(){
+    freq1 = (midi[0]/127.f)*f1_band + f1_min;
+    freq2 = (midi[1]/127.f)*f2_band + f2_min;
+    freq3 = 0; // qualcosa
 }

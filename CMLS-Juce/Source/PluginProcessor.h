@@ -73,7 +73,10 @@ public:
 
     uint8_t midi[2];
 
+    float freq1 = 500, freq2 = 1000, freq3 = 2000;
+
     void oscMessageReceived (const juce::OSCMessage& message) override;
+    void calcFreqs();
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (CMLSJuceAudioProcessor)
 };
