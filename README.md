@@ -46,7 +46,7 @@ The code includes a function to map float values from one range to another, usef
 This interface is useful for controlling audio parameters in real-time through SuperCollider, facilitating the creation and manipulation of sounds in a visual and interactive manner.
 
 
-### SuperCollider
+## SuperCollider
 
 This SuperCollider script sets up a sophisticated audio processing environment that includes MIDI and OSC (Open Sound Control) interactions, a variety of synthesizer waveforms, and integration with VST plugins for effects. Here’s a detailed explanation of the script:
 
