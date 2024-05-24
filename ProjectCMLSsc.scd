@@ -7,7 +7,8 @@ MIDIIn.connectAll;
 //RICERCA DEL PLUGIN JUCE
 VSTPlugin.search;
 //BUS AUDIO IN USCITA
-(~myBus = Bus.audio(s, 2);
+(
+~myBus = Bus.audio(s, 2);
 //Template della istanza del plugin
 
 SynthDef(\effetto, { arg bus;
@@ -18,29 +19,29 @@ SynthDef(\effetto, { arg bus;
 SynthDef("Sin", {
 	arg freq = 440, pan = 0, mul=1, det =0.2, bus, amp=1, gate1=1, gate2=1;
 	var out, detune;
-	detune = SinOsc.kr(freq: 8.2.rand, mul:5*det);
+	detune = SinOsc.kr(freq: (20.rand)/8, mul:5*det);
 	out = amp*EnvGen.kr(Env.adsr, gate1*gate2, doneAction: 0)*SinOsc.ar((freq - detune), mul: mul);
 	Out.ar(bus, Pan2.ar(out,pan));
 }).add;
 SynthDef("Impulse",
  {arg freq=466, pan =0, width=0.1, mul=1, det=0.2, bus, amp=1, gate1=1, gate2=1;
 	var sig, out, detune;
-	detune = SinOsc.kr  (freq: 8.2.rand, mul:5*det);
-	out = amp*EnvGen.kr(Env.adsr, gate1*gate2, doneAction: 0)*Pulse.ar (freq,width ,mul);
+		detune = SinOsc.kr(freq: (20.rand)/8, mul:5*det);
+	out = amp*EnvGen.kr(Env.adsr, gate1*gate2, doneAction: 0)*Pulse.ar ((freq - detune),width ,mul);
 	Out.ar(bus, Pan2.ar(out,pan));
 } ).add;//we add it to the server
 SynthDef("Sawtooth", {
 	arg freq = 493, pan = 0, mul=1, det= 0.2, bus, amp=1, gate1=1, gate2=1;
 	var out, detune;
-	detune = SinOsc.kr  (freq: 8.2.rand, mul:5*det);
-	out = amp*EnvGen.kr(Env.adsr, gate1*gate2, doneAction: 0)*Saw.ar(freq, mul: mul);
+	detune = SinOsc.kr(freq: (20.rand)/8, mul:5*det);
+	out = amp*EnvGen.kr(Env.adsr, gate1*gate2, doneAction: 0)*Saw.ar((freq - detune), mul: mul);
 	Out.ar(bus, Pan2.ar(out,pan));
 }).add;
 SynthDef("Square",
  {arg freq=466, pan =0, width=0.5, mul=1, det=0.2, bus, amp=1, gate1=1, gate2=1;
 	var out, detune;
-		detune = SinOsc.kr  (freq: 8.2.rand, mul:5*det);
-	out = amp*EnvGen.kr(Env.adsr, gate1*gate2, doneAction: 0)*Pulse.ar (freq,width ,mul);
+	detune = SinOsc.kr(freq: (20.rand)/8, mul:5*det);
+	out = amp*EnvGen.kr(Env.adsr, gate1*gate2, doneAction: 0)*Pulse.ar ((freq - detune),width ,mul);
 	Out.ar(bus, Pan2.ar(out,pan));
 } ).add;//we add it to the server
 
@@ -146,7 +147,6 @@ OSCdef.new(\detune, {arg detOsc;
 	~b3.set(\det, detOsc);
 	~b4.set(\det, detOsc);
 	~b5.set(\det, detOsc);
-	postln(detOsc);
 }, '/Detune');
 OSCdef.new(\unison, {arg g1, g2, g3, g4, g5, p1, p2, p3, p4, p5;
 	~b1.set(\gate2, g1, \pan, p1);
@@ -154,7 +154,6 @@ OSCdef.new(\unison, {arg g1, g2, g3, g4, g5, p1, p2, p3, p4, p5;
 	~b3.set(\gate2, g3, \pan, p3);
 	~b4.set(\gate2, g4, \pan, p4);
 	~b5.set(\gate2, g5, \pan, p5);
-	postln(g1);
 }, '/Unison');
 OSCdef.new(\vol, {arg volOsc;
 	~b1.set(\amp, volOsc);
@@ -162,7 +161,6 @@ OSCdef.new(\vol, {arg volOsc;
 	~b3.set(\amp, volOsc);
 	~b4.set(\amp, volOsc);
 	~b5.set(\amp, volOsc);
-	postln(volOsc);
 }, '/Volume');
 OSCdef.new(\close, {
 	0.exit;
@@ -179,7 +177,8 @@ OSCdef.new(\close, {
 //~fx.gui;
 //~fx.editor;
 //RICEZIONE DELLE FREQUENZE DEI FILTRI DA ARDUINO
-(MIDIdef.cc(\filter1, {
+(
+MIDIdef.cc(\filter1, {
 	arg val;
 	~n.sendMsg("/handMovement/x", val);
 	~j.sendMsg("/handMovement/x", val);
