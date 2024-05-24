@@ -67,9 +67,9 @@ public:
 
     std::vector<juce::AudioBuffer<float>> L_bands,R_bands;
 
-    float f1_band, f1_min;
-    float f2_band, f3_min;
-    float f3_band, f2_min;
+    float f1_band = 500, f1_min = 250;
+    float f2_band = 1640, f2_min = 650;
+    float f3_band = 630, f3_min = 2300;
 
     uint8_t midi[2];
 

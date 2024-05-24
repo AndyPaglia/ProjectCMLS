@@ -1,0 +1,4 @@
+(s.boot;
+
+VSTPlugin.search;
+)

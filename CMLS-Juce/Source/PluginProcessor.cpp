@@ -17,10 +17,10 @@ CMLSJuceAudioProcessor::CMLSJuceAudioProcessor()
                        .withOutput ("Output", juce::AudioChannelSet::stereo(), true)
                        ), F1(), F2(), F3()
 {
-        if (!connect(8000)) {
-        std::cerr << "Unable to connect to port 8000\n";
+        if (!connect(9000)) {
+        std::cerr << "Unable to connect to port 9000\n";
        // juce::OSCReceiver::addListerner(this, "/cicco");
-        }else std::printf("connected to port 8000\n");
+        }else std::printf("connected to port 9000\n");
         juce::OSCReceiver::addListener(this, "/handMovement/x");
         juce::OSCReceiver::addListener(this, "/handMovement/y");
 }
@@ -184,28 +184,16 @@ void CMLSJuceAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce
     float freqs[3];
     float gains[3];
     float Qs[3];
-
-    freqs[0] = *tree_state.getRawParameterValue("F1_Freq"); 
-    gains[0] =  std::pow(10,0.1*(*tree_state.getRawParameterValue("F1_Gain")));
-    Qs[0] = *tree_state.getRawParameterValue("F1_Q");
-
-    freqs[1] = *tree_state.getRawParameterValue("F2_Freq"); 
-    gains[1] = std::pow(10,0.1*(*tree_state.getRawParameterValue("F2_Gain")));
-    Qs[1] = *tree_state.getRawParameterValue("F2_Q");
-
-    freqs[2] = *tree_state.getRawParameterValue("F3_Freq"); 
-    gains[2] =  std::pow(10,0.1*(*tree_state.getRawParameterValue("F3_Gain")));
-    Qs[2] = *tree_state.getRawParameterValue("F3_Q");
-
+    
     calcFreqs();
 
     F1.setCutoffFrequency(freq1);
     F2.setCutoffFrequency(freq2);
     F3.setCutoffFrequency(freq3);
 
-    F1.setResonance(Qs[0]);
-    F2.setResonance(Qs[1]);
-    F3.setResonance(Qs[2]);
+    F1.setResonance(10);
+    F2.setResonance(8);
+    F3.setResonance(2);
 
     F1.process(ctx1);
     F2.process(ctx2);
@@ -214,7 +202,7 @@ void CMLSJuceAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce
     for(int i = 0; i < totalNumOutputChannels; i++){
         auto writer = buffer.getWritePointer(i);
         for (int j = 0; j < buffer.getNumSamples(); j++)
-            writer[j] = (mags[i])*(gains[0]*block1.getSample(i,j) + gains[1]*block2.getSample(i,j) + gains[2]*block3.getSample(i,j));
+            writer[j] = (mags[i]/3)*((1+(midi[0]/127.f)*0.2)*block1.getSample(i,j) + 0.75*block2.getSample(i,j) + 0.6*block3.getSample(i,j));
     }
 }
 
@@ -253,15 +241,8 @@ juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 
 juce::AudioProcessorValueTreeState::ParameterLayout CMLSJuceAudioProcessor::createLayout() {
     std::vector<std::unique_ptr<juce::RangedAudioParameter>> layout;
-    layout.push_back(std::make_unique<juce::AudioParameterFloat>("F1_Freq", "Formant_1_Freq", juce::NormalisableRange<float>(20.f, 20000.f,1.f, 1.f), 500.f));
-    layout.push_back(std::make_unique<juce::AudioParameterFloat>("F2_Freq", "Formant_2_Freq", juce::NormalisableRange<float>(20.f, 20000.f,1.f, 1.f), 1000.f));
-    layout.push_back(std::make_unique<juce::AudioParameterFloat>("F3_Freq", "Formant_3_Freq", juce::NormalisableRange<float>(20.f, 20000.f,1.f, 1.f), 2000.f)); 
-    layout.push_back(std::make_unique<juce::AudioParameterFloat>("F1_Gain", "Formant_1_Gain", juce::NormalisableRange<float>(-24.f, 0.f,1.f, 1.f), 0.f));
-    layout.push_back(std::make_unique<juce::AudioParameterFloat>("F2_Gain", "Formant_2_Gain", juce::NormalisableRange<float>(-24.f, 0.f,1.f, 1.f), -6.f));
-    layout.push_back(std::make_unique<juce::AudioParameterFloat>("F3_Gain", "Formant_3_Gain", juce::NormalisableRange<float>(-24.f, 0.f,1.f, 1.f), -6.f));
-    layout.push_back(std::make_unique<juce::AudioParameterFloat>("F1_Q", "Formant_1_Qfact", juce::NormalisableRange<float>(0.1f, 10.f,0.05f, 1.f), 0.9f));
-    layout.push_back(std::make_unique<juce::AudioParameterFloat>("F2_Q", "Formant_2 Qfact", juce::NormalisableRange<float>(0.1f, 10.f,0.05f, 1.f), 0.9f));
-    layout.push_back(std::make_unique<juce::AudioParameterFloat>("F3_Q", "Formant_3_Qfact", juce::NormalisableRange<float>(0.1f, 10.f,0.05f, 1.f), 0.9f));
+    layout.push_back(std::make_unique<juce::AudioParameterFloat>("Freq 1", "Formant_1_Freq", juce::NormalisableRange<float>(0.f, 127.f,1.f, 1.f), 0.5f));
+    layout.push_back(std::make_unique<juce::AudioParameterFloat>("Freq 2", "Formant_2_Freq", juce::NormalisableRange<float>(0.f, 127.f,1.f, 1.f), 0.5f));
     return {layout.begin(), layout.end()};
 }
 
@@ -280,5 +261,5 @@ void CMLSJuceAudioProcessor::oscMessageReceived(const juce::OSCMessage& message)
 void CMLSJuceAudioProcessor::calcFreqs(){
     freq1 = (midi[0]/127.f)*f1_band + f1_min;
     freq2 = (midi[1]/127.f)*f2_band + f2_min;
-    freq3 = 0; // qualcosa
+    freq3 = (1-((freq2-freq1)/(f2_min+f2_band-f1_min)))*(1-((freq1)/(f1_min+f1_band)))*f3_band + f3_min;
 }

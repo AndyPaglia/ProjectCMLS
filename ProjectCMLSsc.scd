@@ -109,6 +109,7 @@ OSCdef(\exit, {
 //~fx.set(8, 0);
 //INVIA MESSAGGIO OSC CON NOTA A PROCESSING
 ~n=NetAddr.new("127.0.0.1", 8000);
+~j=NetAddr.new("127.0.0.1", 9000);
 //RICEZIONE DELLE NOTE MIDI DA ARDUINO
 MIDIdef.noteOn(\nota, {
 	arg vel, note;
@@ -169,26 +170,25 @@ OSCdef.new(\close, {
 )
 
 //APRO IL PLUGIN, LO ASSOCIO A UN UGEN E LO CONTROLLO CON VSTCONTROLLER
-~fx = VSTPluginController(Synth(\effetto, [\bus, ~myBus])).open("RVerb Mono/Stereo");
+~fx = VSTPluginController(Synth(\effetto, [\bus, ~myBus])).open("CMLS-Juce.vst3");
 /*~fx.set(8, 1);
 ~b = Synth.new("Sin", [freq:~noteSet,bus:~myBus]);//(-1 + (a * i)), ~myBus).play;
 ~b.free;//ricordati di deallocare
 ~b.set(\freq, 200);*/
 //APERTURA GUI DEL PLUGIN(NON NECESSARIA)
-~fx.gui;
-~fx.editor;
+//~fx.gui;
+//~fx.editor;
 //RICEZIONE DELLE FREQUENZE DEI FILTRI DA ARDUINO
 (MIDIdef.cc(\filter1, {
 	arg val;
-	~fx.set(0, val);   //0 per la frequenza del primo filtro
+	~n.sendMsg("/handMovement/x", val);
+	~j.sendMsg("/handMovement/x", val);
 }, 12);
 MIDIdef.cc(\filter2, {
 	arg val;
-	~fx.set(1, val);   //1 per la frequenza del primo filtro
+	~n.sendMsg("/handMovement/y", val);
+	~j.sendMsg("/handMovement/y", val);
 }, 13);
 //SUONA IL BUS
 ~myBus.play;
 )
-
-
-
