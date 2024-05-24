@@ -163,7 +163,9 @@ OSCdef.new(\vol, {arg volOsc;
 	~b5.set(\amp, volOsc);
 	postln(volOsc);
 }, '/Volume');
-)
+OSCdef.new(\close, {
+	0.quit;
+}, '/Button');
 
 
 //APRO IL PLUGIN, LO ASSOCIO A UN UGEN E LO CONTROLLO CON VSTCONTROLLER
@@ -186,3 +188,8 @@ MIDIdef.cc(\filter2, {
 }, 13);
 //SUONA IL BUS
 ~myBus.play;
+
+
+
+
+
