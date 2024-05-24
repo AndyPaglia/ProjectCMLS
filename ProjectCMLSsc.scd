@@ -165,7 +165,7 @@ OSCdef.new(\vol, {arg volOsc;
 }, '/Volume');
 OSCdef.new(\close, {
 	0.quit;
-}, '/Button');
+}, '/Off');
 
 
 //APRO IL PLUGIN, LO ASSOCIO A UN UGEN E LO CONTROLLO CON VSTCONTROLLER
