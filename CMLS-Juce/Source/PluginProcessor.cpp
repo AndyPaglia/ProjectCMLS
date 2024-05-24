@@ -158,51 +158,48 @@ void CMLSJuceAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i) {
         buffer.clear (i, 0, buffer.getNumSamples());
     }
-    
-    F1.setType(juce::dsp::StateVariableTPTFilterType::bandpass);
-    F2.setType(juce::dsp::StateVariableTPTFilterType::bandpass);
-    F3.setType(juce::dsp::StateVariableTPTFilterType::bandpass);
 
-    juce::AudioBuffer<float> copy1 = buffer;
+    juce::AudioBuffer<float> copy1 = buffer;                                // creation of the buffer copies
     juce::AudioBuffer<float> copy2 = buffer;
     juce::AudioBuffer<float> copy3 = buffer;
 
-    juce::dsp::AudioBlock<float> block(buffer);
+    juce::dsp::AudioBlock<float> block(buffer);                             // blocks for the copies
     juce::dsp::AudioBlock<float> block1(copy1);
     juce::dsp::AudioBlock<float> block2(copy2);
     juce::dsp::AudioBlock<float> block3(copy3);
 
-    juce::dsp::ProcessContextReplacing<float> ctx1(block1);
+    juce::dsp::ProcessContextReplacing<float> ctx1(block1);                 // contects from blocks
     juce::dsp::ProcessContextReplacing<float> ctx2(block2);
     juce::dsp::ProcessContextReplacing<float> ctx3(block3);
 
     std::vector<float> mags;
-    for (int i = 0; i < totalNumOutputChannels; i++) {
+    for (int i = 0; i < totalNumOutputChannels; i++) {                      // obtaining magnitudes of the channels 
         mags.push_back(buffer.getMagnitude(i,0,buffer.getNumSamples()));
-        block.getSingleChannelBlock(i).multiplyBy(1/mags[i]);
+        block.getSingleChannelBlock(i).multiplyBy(1/mags[i]);               // normalyzing each channels
     }
-    float freqs[3];
-    float gains[3];
-    float Qs[3];
     
-    calcFreqs();
+    calcFreqs();                                                            // calculating frequencies from osc messages
+    
+    F1.setType(juce::dsp::StateVariableTPTFilterType::bandpass);            // setting filter type to bandpass
+    F2.setType(juce::dsp::StateVariableTPTFilterType::bandpass);
+    F3.setType(juce::dsp::StateVariableTPTFilterType::bandpass);
 
-    F1.setCutoffFrequency(freq1);
+    F1.setCutoffFrequency(freq1);                                           // seeting the cutoff frequncies
     F2.setCutoffFrequency(freq2);
     F3.setCutoffFrequency(freq3);
 
-    F1.setResonance(10);
+    F1.setResonance(10);                                                    // setting resonaces
     F2.setResonance(8);
     F3.setResonance(2);
 
-    F1.process(ctx1);
+    F1.process(ctx1);                                                       // applying the bandpass on the 3 copies
     F2.process(ctx2);
     F3.process(ctx3);
 
-    for(int i = 0; i < totalNumOutputChannels; i++){
+    for(int i = 0; i < totalNumOutputChannels; i++){                        // summing the 3 copies back in the original buffer and applying the correct magnitud rescaling
         auto writer = buffer.getWritePointer(i);
         for (int j = 0; j < buffer.getNumSamples(); j++)
-            writer[j] = (mags[i]/3)*((1+(midi[0]/127.f)*0.2)*block1.getSample(i,j) + 0.75*block2.getSample(i,j) + 0.6*block3.getSample(i,j));
+            writer[j] = (mags[i]/3)*((1+(midi[0]/127.f)*0.2)1.5*block1.getSample(i,j) + 1.25*block2.getSample(i,j) + 1.1*block3.getSample(i,j));
     }
 }
 
@@ -246,19 +243,19 @@ juce::AudioProcessorValueTreeState::ParameterLayout CMLSJuceAudioProcessor::crea
     return {layout.begin(), layout.end()};
 }
 
-void CMLSJuceAudioProcessor::oscMessageReceived(const juce::OSCMessage& message) {
+void CMLSJuceAudioProcessor::oscMessageReceived(const juce::OSCMessage& message) {  // recieving the osc messages and storing them in some variables
     if (message.size() == 1 && message[0].isInt32()) {
         if (message.getAddressPattern() == "/handMovement/x") {
             midi[0] = message[0].getInt32();
-            std::printf("value obtined = %i\n", message[0].getInt32());
+            //std::printf("value obtined = %i\n", message[0].getInt32());
         } else if (message.getAddressPattern() == "/handMovement/y") {
             midi[1] = message[0].getInt32();
-            std::cout << "message obtained = " << message[0].getInt32() << std::endl;
+            //std::cout << "message obtained = " << message[0].getInt32() << std::endl;
         }
     }
 }
 
-void CMLSJuceAudioProcessor::calcFreqs(){
+void CMLSJuceAudioProcessor::calcFreqs() {                                          // calculating the frequencies from the input osc messagess
     freq1 = (midi[0]/127.f)*f1_band + f1_min;
     freq2 = (midi[1]/127.f)*f2_band + f2_min;
     freq3 = (1-((freq2-freq1)/(f2_min+f2_band-f1_min)))*(1-((freq1)/(f1_min+f1_band)))*f3_band + f3_min;
