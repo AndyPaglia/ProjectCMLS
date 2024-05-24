@@ -164,9 +164,9 @@ OSCdef.new(\vol, {arg volOsc;
 	postln(volOsc);
 }, '/Volume');
 OSCdef.new(\close, {
-	0.quit;
+	0.exit;
 }, '/Off');
-
+)
 
 //APRO IL PLUGIN, LO ASSOCIO A UN UGEN E LO CONTROLLO CON VSTCONTROLLER
 ~fx = VSTPluginController(Synth(\effetto, [\bus, ~myBus])).open("RVerb Mono/Stereo");
@@ -178,7 +178,7 @@ OSCdef.new(\close, {
 ~fx.gui;
 ~fx.editor;
 //RICEZIONE DELLE FREQUENZE DEI FILTRI DA ARDUINO
-MIDIdef.cc(\filter1, {
+(MIDIdef.cc(\filter1, {
 	arg val;
 	~fx.set(0, val);   //0 per la frequenza del primo filtro
 }, 12);
@@ -188,8 +188,7 @@ MIDIdef.cc(\filter2, {
 }, 13);
 //SUONA IL BUS
 ~myBus.play;
-
-
+)
 
 
 
