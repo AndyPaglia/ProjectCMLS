@@ -48,7 +48,6 @@ SynthDef("Square",
 //SELEZIONA LA FORMA D'ONDA DA UNA PORTA OSC
 ~r=NetAddr.new("127.0.0.1", 57120);
 OSCdef(\synthSelection, {arg selector;
-	postln("carciofo");
 	selector[1].postln;
 	switch(selector[1],
         1, {
@@ -166,18 +165,15 @@ OSCdef.new(\close, {
 	0.exit;
 }, '/Off');
 )
-
+(
 //APRO IL PLUGIN, LO ASSOCIO A UN UGEN E LO CONTROLLO CON VSTCONTROLLER
 ~fx = VSTPluginController(Synth(\effetto, [\bus, ~myBus])).open("CMLS-Juce.vst3");
-/*~fx.set(8, 1);
-~b = Synth.new("Sin", [freq:~noteSet,bus:~myBus]);//(-1 + (a * i)), ~myBus).play;
-~b.free;//ricordati di deallocare
-~b.set(\freq, 200);*/
-//APERTURA GUI DEL PLUGIN(NON NECESSARIA)
-//~fx.gui;
-//~fx.editor;
-//RICEZIONE DELLE FREQUENZE DEI FILTRI DA ARDUINO
-(
+~b1 = Synth.new(\Impulse, [freq: ~noteSet, bus: ~myBus]);
+~b2 = Synth.new(\Impulse, [freq: ~noteSet, bus: ~myBus]);
+~b3 = Synth.new(\Impulse, [freq: ~noteSet, bus: ~myBus]);
+~b4 = Synth.new(\Impulse, [freq: ~noteSet, bus: ~myBus]);
+~b5 = Synth.new(\Impulse, [freq: ~noteSet, bus: ~myBus]);
+
 MIDIdef.cc(\filter1, {
 	arg val;
 	~n.sendMsg("/handMovement/x", val);
